@@ -10,4 +10,7 @@
 
 @interface GWLAutoGrowingTextView : UITextView
 
+@property (nonatomic) IBInspectable NSString *placeholder;
+@property (nonatomic) IBInspectable UIColor *placeholderColor;
+
 @end
