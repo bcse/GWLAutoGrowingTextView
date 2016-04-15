@@ -10,7 +10,7 @@
 
 @interface GWLAutoGrowingTextView ()
 @property (nonatomic, weak) NSLayoutConstraint *heightConstraint;
-@property (nonatomic) UILabel *placeholderLabel;
+@property (nonatomic, strong) UILabel *placeholderLabel;
 @end
 
 @implementation GWLAutoGrowingTextView
@@ -55,20 +55,22 @@
 - (void)commonInit
 {
     if (!self.placeholderLabel) {
-        self.placeholderLabel = [[UILabel alloc] init];
-        self.placeholderLabel.numberOfLines = 0;
-        self.placeholderLabel.lineBreakMode = NSLineBreakByWordWrapping;
-        self.placeholderLabel.font = self.font;
-        self.placeholderLabel.backgroundColor = [UIColor clearColor];
-        [self addSubview:self.placeholderLabel];
+        UILabel *placeholderLabel = self.placeholderLabel = [[UILabel alloc] init];
+        placeholderLabel.translatesAutoresizingMaskIntoConstraints = NO;
+        placeholderLabel.numberOfLines = 0;
+        placeholderLabel.lineBreakMode = NSLineBreakByWordWrapping;
+        placeholderLabel.backgroundColor = [UIColor clearColor];
+        [self insertSubview:placeholderLabel atIndex:0];
 
-        self.placeholderLabel.frame = CGRectMake(5, 8, self.frame.size.width - 5 * 2, self.frame.size.height - 8 * 2);
-        self.placeholderLabel.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleBottomMargin;
-        self.placeholderLabel.translatesAutoresizingMaskIntoConstraints = YES;
+        [self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"|-5-[placeholderLabel]" options:0 metrics:nil views:@{@"placeholderLabel": placeholderLabel}]];
+        [self addConstraint:[NSLayoutConstraint constraintWithItem:placeholderLabel attribute:NSLayoutAttributeWidth relatedBy:NSLayoutRelationEqual toItem:self attribute:NSLayoutAttributeWidth multiplier:1 constant:-10]];
+        [self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-8-[placeholderLabel]" options:0 metrics:nil views:@{@"placeholderLabel": placeholderLabel}]];
+        [self addConstraint:[NSLayoutConstraint constraintWithItem:placeholderLabel attribute:NSLayoutAttributeHeight relatedBy:NSLayoutRelationLessThanOrEqual toItem:self attribute:NSLayoutAttributeHeight multiplier:1 constant:-16]];
     }
-
+    
     for (NSLayoutConstraint *constraint in self.constraints) {
-        if (constraint.firstAttribute == NSLayoutAttributeHeight && constraint.relation == NSLayoutRelationEqual) {
+        if (constraint.firstItem == self && constraint.secondItem == nil &&
+            constraint.firstAttribute == NSLayoutAttributeHeight && constraint.relation == NSLayoutRelationEqual) {
             self.heightConstraint = constraint;
             break;
         }
@@ -88,15 +90,23 @@
 - (void)setPlaceholder:(NSString *)placeholder
 {
     _placeholder = placeholder;
-    self.placeholderLabel.text = placeholder;
-    CGSize textSize = [self.placeholderLabel sizeThatFits:CGSizeMake(self.frame.size.width - self.placeholderLabel.frame.origin.x * 2, self.frame.size.width - self.placeholderLabel.frame.origin.y * 2)];
-    self.placeholderLabel.frame = CGRectMake(self.placeholderLabel.frame.origin.x, self.placeholderLabel.frame.origin.y, self.placeholderLabel.frame.size.width, textSize.height);
+    self.placeholderLabel.attributedText = [[NSAttributedString alloc] initWithString:placeholder attributes:self.typingAttributes];
 }
 
 - (void)setPlaceholderColor:(UIColor *)placeholderColor
 {
     _placeholderColor = placeholderColor;
     self.placeholderLabel.textColor = placeholderColor;
+}
+
+- (void)prepareForInterfaceBuilder
+{
+    if (!_placeholder) {
+        _placeholder = @"Placeholder";
+    }
+    if (!_placeholderColor) {
+        _placeholderColor = [UIColor colorWithWhite:0.27 alpha:1.0];
+    }
 }
 
 - (void)gwl_inputTextDidChanged:(NSNotification *)notification
